@@ -1,0 +1,43 @@
+# Configuration for the Makefile
+
+# Linux Drawin
+OS ?= $(shell uname)
+OS := $(OS:MINGW%=MINGW)
+OS := $(OS:MSYS%=MINGW)
+OS := $(OS:Windows_NT=MINGW)
+OS := $(OS:Darwin=MACOS)
+# mips64 x86_64 aarch64
+PLATFORM = $(shell uname -m)
+
+HAVE_LIBDL ?= yes
+
+CFLAGS += -Wall
+CFLAGS += -fvisibility=hidden
+
+# clang does not support these in combination with -fembed-bitcode
+ifeq (,$(findstring -fembed-bitcode,$(XCFLAGS)))
+CFLAGS += -ffunction-sections -fdata-sections
+endif
+
+ifeq "$(OS)" "MACOS"
+LDREMOVEUNREACH := -Wl,-dead_strip
+LDFLAGS += -install_name @rpath/$(TARGET)
+else
+LDREMOVEUNREACH := -Wl,--gc-sections
+endif
+
+#debug/release都加-g来嵌入符号文件，以便breakpad提取
+ifeq "$(BUILD_TYPE)" "Debug"
+CFLAGS += -pipe -g -fPIC
+LDFLAGS += -g -shared -Wl,--exclude-libs,ALL
+else ifeq "$(BUILD_TYPE)" "Release"
+CFLAGS += -g -pipe -O2 -fPIC -DNDEBUG -fomit-frame-pointer 
+LDFLAGS += -g $(LDREMOVEUNREACH) -Wl,-s -shared -Wl,--exclude-libs,ALL
+else
+$(error unknown BUILD_TYPE setting: '$(BUILD_TYPE)')
+endif
+
+ifeq "$(GOOGLE_ASAN)" "Yes"
+CFLAGS += -fsanitize=address  -fno-omit-frame-pointer -static-libasan
+LDFLAGS += -fsanitize=address  -fno-omit-frame-pointer -static-libasan
+endif

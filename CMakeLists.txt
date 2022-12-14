@@ -1,0 +1,22 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR})
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/openssl111s/include)
+LINK_DIRECTORIES(${PROJECT_SOURCE_DIR}/openssl111s/lib)
+
+SET(SRC_LIST 
+	
+	sm2_create_key_pair.c
+	sm2_encrypt_and_decrypt.c
+	test_sm2_encrypt_and_decrypt.c
+)
+
+ADD_LIBRARY(oed SHARED ${SRC_LIST})
+
+TARGET_LINK_LIBRARIES(oed libssl.a)
+TARGET_LINK_LIBRARIES(oed libcrypto.a)
+if(UNIX AND CMAKE_COMPILER_IS_GNUCC)
+    set(CMAKE_C_FLAGS"${CMAKE_C_FLAGS} -fvisibility=hidden")
+	set_target_properties(oed PROPERTIES C_VISIBILITY_PRESET hidden)
+endif()
+SET_TARGET_PROPERTIES(oed PROPERTIES OUTPUT_NAME "oed")
